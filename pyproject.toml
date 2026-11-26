@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tangem-quote-guard"
+version = "0.1.0"
+description = "Pre-trade execution-cost check for Tangem Express swaps, exposed as an MCP server."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Florence Deborah Babatope" }]
+dependencies = ["mcp>=1.2"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+quote-guard = "quote_guard.server:main"
+quote-guard-demo = "quote_guard.demo:main"
+
+[tool.setuptools]
+packages = ["quote_guard"]
