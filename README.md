@@ -1,5 +1,7 @@
 # Tangem Quote Guard
 
+[![tests](https://github.com/deborahbabatope06-collab/tangem-quote-guard/actions/workflows/tests.yml/badge.svg)](https://github.com/deborahbabatope06-collab/tangem-quote-guard/actions/workflows/tests.yml)
+
 A pre-trade check for AI agents that swap crypto through the [Tangem MCP server](https://mcp.tangem.com/en/docs/).
 
 Tangem lets an AI assistant *prepare* a swap and send you a link to sign it in the Tangem app. Before that link is created, though, nothing checks whether the quote is actually any good. Quote Guard fills that gap. It quotes every available provider, prices each quote against an independent market reference, and tells the agent whether it may go ahead.
@@ -38,11 +40,27 @@ Quotes are ranked usable-first, then by lowest cost. A quote more than $100$ bps
 
 ## Quick start
 
+You need Python 3.10 or newer. For the agent part, you also need [Claude Code](https://claude.com/claude-code) (or another MCP client) and a Tangem wallet.
+
 ```bash
-pip install -e ".[dev]"
+git clone https://github.com/deborahbabatope06-collab/tangem-quote-guard.git
+cd tangem-quote-guard
+./scripts/setup.sh              # macOS / Linux
+.\scripts\setup.ps1             # Windows (PowerShell)
+```
+
+The script creates a `.venv`, installs the package, runs the tests and the demo, and, if Claude Code is installed, adds both MCP servers at user scope. Pass `--no-mcp` (or `-NoMcp` on Windows) to skip that last step.
+
+Manual install:
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install --prefer-binary --only-binary=cryptography -e ".[dev]"
 python -m quote_guard.demo     # offline demo with mock quotes
 pytest -q                      # 22 tests
 ```
+
+> The `--only-binary=cryptography` flag matters on some platforms, such as Intel Macs. The MCP SDK depends on `cryptography`, and if its newest release has no prebuilt wheel for your machine, pip falls back to building it from source with Rust and fails. The flag makes pip pick the newest version that has a wheel.
 
 Demo output (mock providers, ETH at \$3000):
 
@@ -61,19 +79,24 @@ provider_c  STALE       2999.00         3.3
 
 Add **both** servers to your client. Tangem's server handles wallet login (QR scan and OAuth approval in the Tangem app). Quote Guard runs locally and never touches your wallet.
 
-Claude Code:
+The setup script does this for Claude Code. To do it by hand, use the **absolute path to the venv's Python**, so the server starts no matter which folder you launch Claude from:
 
 ```bash
-claude mcp add --transport http tangem https://mcp.tangem.org/mcp
-claude mcp add quote-guard -- python -m quote_guard.server
+claude mcp add --scope user --transport http tangem https://mcp.tangem.org/mcp
+claude mcp add --scope user quote-guard -- /full/path/to/tangem-quote-guard/.venv/bin/python -m quote_guard.server
 ```
+
+On Windows the Python path is `...\tangem-quote-guard\.venv\Scripts\python.exe`.
 
 Claude Desktop (`claude_desktop_config.json`), for the local server:
 
 ```json
 {
   "mcpServers": {
-    "quote-guard": { "command": "python", "args": ["-m", "quote_guard.server"] }
+    "quote-guard": {
+      "command": "/full/path/to/tangem-quote-guard/.venv/bin/python",
+      "args": ["-m", "quote_guard.server"]
+    }
   }
 }
 ```
@@ -109,7 +132,8 @@ quote_guard/
   service.py   the check, independent of MCP
   server.py    MCP server (works with mcp SDK v1 and v2)
   demo.py      offline demo with mock data
-tests/         pytest suite
+scripts/       one-step setup (setup.sh, setup.ps1)
+tests/         pytest suite, run on Linux, macOS and Windows by GitHub Actions
 ```
 
 Built at *Build on Tangem: MCP Workshop & Build Night*, Encode Hub London.
